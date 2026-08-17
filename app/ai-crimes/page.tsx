@@ -1,7 +1,7 @@
 // AI-Related Cyber Crimes section — Bonus +10 marks.
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -13,7 +13,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import Link from "next/link";
-import { listCountries, getCountryById } from "@/lib/data";
+import { Loader2 } from "lucide-react";
 
 const AI_CRIME_CATEGORIES = [
   {
@@ -76,16 +76,30 @@ const AI_CRIME_CATEGORIES = [
 
 export default function AiCrimesPage() {
   const [expandedCategory, setExpandedCategory] = useState<string | null>("deepfakes");
-  const countries = listCountries();
+  const [countriesWithAiData, setCountriesWithAiData] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Filter countries that have AI cyber crime data
-  const countriesWithAiData = countries.filter((c) => {
-    const detail = getCountryById(c.countryId);
-    return detail?.aiCyberCrimes !== null;
-  });
+  useEffect(() => {
+    fetch("/api/countries")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.status) {
+          const aiCountries = data.data.countries.filter((c: any) => c.aiCyberCrimes !== null);
+          setCountriesWithAiData(aiCountries);
+        }
+        setIsLoading(false);
+      })
+      .catch(() => setIsLoading(false));
+  }, []);
 
   return (
-    <main className="min-h-screen bg-[#050505] text-zinc-100">
+    <main className="min-h-screen bg-[#050505] text-zinc-100 relative">
+      {isLoading && (
+        <div className="absolute inset-0 z-50 bg-[#050505] flex flex-col items-center justify-center min-h-[50vh]">
+          <Loader2 className="w-8 h-8 text-purple-500 animate-spin mb-4" />
+          <div className="text-zinc-500 text-sm animate-pulse tracking-widest uppercase">Fetching Global AI Laws...</div>
+        </div>
+      )}
       {/* Header */}
       <header className="sticky top-0 z-30 bg-black/80 backdrop-blur-xl border-b border-zinc-800/40">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
@@ -207,8 +221,7 @@ export default function AiCrimesPage() {
               </thead>
               <tbody>
                 {countriesWithAiData.map((country) => {
-                  const detail = getCountryById(country.countryId);
-                  const ai = detail?.aiCyberCrimes;
+                  const ai = country.aiCyberCrimes;
                   if (!ai) return null;
 
                   return (

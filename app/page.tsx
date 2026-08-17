@@ -1,7 +1,7 @@
 // Main globe page — orchestrates all components.
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { CyberGlobe } from "@/components/globe/cyber-globe";
 import { GlobeControls } from "@/components/globe/globe-controls";
 import { Header } from "@/components/layout/header";
@@ -10,14 +10,14 @@ import { CountryDrawer } from "@/components/panels/country-drawer";
 import { ComparisonModal } from "@/components/panels/comparison-modal";
 import { AiSearchPanel } from "@/components/panels/ai-search-panel";
 import { SearchBar } from "@/components/ui/search-bar";
-import { listCountries, getCountryById, getCountriesForComparison } from "@/lib/data";
 import type { Country, CountryDetail } from "@/lib/types";
 import { AnimatePresence, motion } from "framer-motion";
-
-const allCountries = listCountries();
+import { Loader2 } from "lucide-react";
 
 export default function HomePage() {
   // State
+  const [allCountries, setAllCountries] = useState<Country[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedCountry, setSelectedCountry] = useState<CountryDetail | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isCompareMode, setIsCompareMode] = useState(false);
@@ -30,21 +30,34 @@ export default function HomePage() {
   const [showDraftLaws, setShowDraftLaws] = useState(true);
   const [showAiRegulations, setShowAiRegulations] = useState(false);
 
+  useEffect(() => {
+    fetch("/api/countries")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.status) {
+          setAllCountries(data.data.countries);
+        }
+        setIsLoading(false);
+      })
+      .catch(() => setIsLoading(false));
+  }, []);
+
   // Handlers
   const handleCountryClick = useCallback(
-    (countryId: string) => {
+    async (countryId: string) => {
       if (isCompareMode) {
         handleAddToCompare(countryId);
         return;
       }
-      const detail = getCountryById(countryId);
-      if (detail) {
-        setSelectedCountry(detail);
+      const res = await fetch(`/api/countries/${countryId}`);
+      const data = await res.json();
+      if (data.status) {
+        setSelectedCountry(data.data);
         setIsDrawerOpen(true);
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isCompareMode]
+    [isCompareMode, compareList, allCountries]
   );
 
   function handleAddToCompare(countryId: string) {
@@ -60,11 +73,18 @@ export default function HomePage() {
     setCompareList((prev) => prev.filter((c) => c.countryId !== countryId));
   }
 
-  function handleCompareNow() {
+  async function handleCompareNow() {
     if (compareList.length < 2) return;
-    const details = getCountriesForComparison(compareList.map((c) => c.countryId));
-    setComparisonCountries(details);
-    setIsComparisonOpen(true);
+    const res = await fetch("/api/compare", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ countryIds: compareList.map((c) => c.countryId) }),
+    });
+    const data = await res.json();
+    if (data.status) {
+      setComparisonCountries(data.data.countries);
+      setIsComparisonOpen(true);
+    }
   }
 
   function handleToggleCompare() {
@@ -87,6 +107,12 @@ export default function HomePage() {
 
   return (
     <main className="relative w-full h-screen overflow-hidden bg-[#050505]">
+      {isLoading && (
+        <div className="absolute inset-0 z-[100] bg-black flex flex-col items-center justify-center">
+          <Loader2 className="w-8 h-8 text-cyan-500 animate-spin mb-4" />
+          <div className="text-zinc-500 text-sm animate-pulse tracking-widest uppercase">Connecting to Database...</div>
+        </div>
+      )}
       {/* Header */}
       <Header
         isCompareMode={isCompareMode}
