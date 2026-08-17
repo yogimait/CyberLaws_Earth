@@ -1,5 +1,5 @@
 import { ok, fail } from "@/lib/http";
-import { supabase } from "@/lib/supabase";
+import { supabase, firstOf } from "@/lib/supabase";
 import { NextRequest } from "next/server";
 
 export async function GET(
@@ -24,7 +24,7 @@ export async function GET(
     return fail("COUNTRY_NOT_FOUND", { countryId: id }, `Country '${id}' not found.`, 404);
   }
 
-  data.aiCyberCrimes = data.aiCyberCrimes?.[0] ?? null;
+  data.aiCyberCrimes = firstOf(data.aiCyberCrimes);
 
   return ok(data);
 }

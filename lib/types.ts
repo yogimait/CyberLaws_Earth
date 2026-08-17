@@ -19,6 +19,8 @@ export interface Country {
   lastAmendmentYear: number;
   lawStatus: "enacted" | "draft" | "partial";
   enforcementAgency: string;
+  // Attached by GET /api/countries so the globe can color by AI-regulation layer.
+  aiCyberCrimes?: AiCyberCrime | null;
 }
 
 export interface DraftLaw {

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
+import type { Country } from "@/lib/types";
 
 const AI_CRIME_CATEGORIES = [
   {
@@ -76,7 +77,7 @@ const AI_CRIME_CATEGORIES = [
 
 export default function AiCrimesPage() {
   const [expandedCategory, setExpandedCategory] = useState<string | null>("deepfakes");
-  const [countriesWithAiData, setCountriesWithAiData] = useState<any[]>([]);
+  const [countriesWithAiData, setCountriesWithAiData] = useState<Country[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -84,7 +85,7 @@ export default function AiCrimesPage() {
       .then((res) => res.json())
       .then((data) => {
         if (data.status) {
-          const aiCountries = data.data.countries.filter((c: any) => c.aiCyberCrimes !== null);
+          const aiCountries = data.data.countries.filter((c: Country) => c.aiCyberCrimes !== null);
           setCountriesWithAiData(aiCountries);
         }
         setIsLoading(false);
