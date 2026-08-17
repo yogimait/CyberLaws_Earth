@@ -1,6 +1,10 @@
 // Country detail drawer — bottom sheet on mobile, right panel on desktop.
 "use client";
 
+function stripThinkTags(text: string): string {
+  return text.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+}
+
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -46,7 +50,7 @@ export function CountryDrawer({ country, isOpen, onClose, onAddToCompare }: Coun
       });
       const data = await response.json();
       if (data.status) {
-        setAiSummary(data.data.summary);
+        setAiSummary(stripThinkTags(data.data.summary));
       } else {
         setAiSummary(data.message || "AI summary unavailable. Configure GROQ_API_KEY.");
       }

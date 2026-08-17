@@ -25,7 +25,7 @@ html {
 
 body {
   background: var(--bg-primary);
-  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  font-family: var(--font-space), "Space Grotesk", system-ui, sans-serif;
   overflow: hidden;
 }
 

@@ -1,10 +1,17 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Space_Grotesk, Quantico } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space",
   subsets: ["latin"],
+  display: "swap",
+});
+
+const quantico = Quantico({
+  variable: "--font-quantico",
+  subsets: ["latin"],
+  weight: ["400", "700"],
   display: "swap",
 });
 
@@ -26,8 +33,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${inter.variable} h-full antialiased dark`}>
-      <body className="min-h-full flex flex-col bg-[#050505] text-zinc-100 font-[family-name:var(--font-inter)]">
+    <html lang="en" className={`${spaceGrotesk.variable} ${quantico.variable} h-full antialiased dark`}>
+      <body className="min-h-full flex flex-col bg-[#050505] text-zinc-100 font-[family-name:var(--font-space)]">
         {children}
       </body>
     </html>

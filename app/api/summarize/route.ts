@@ -2,6 +2,10 @@
 import { ok, fail } from "@/lib/http";
 import { NextRequest } from "next/server";
 
+function stripThinkTags(text: string): string {
+  return text.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+}
+
 export async function POST(request: NextRequest) {
   const body = await request.json();
   const { countryName, crimeTopic } = body;
@@ -30,12 +34,12 @@ export async function POST(request: NextRequest) {
     const groq = new Groq({ apiKey });
 
     const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: "openai/gpt-oss-20b",
       messages: [
         {
           role: "system",
           content:
-            "You are a cyber law expert. Provide concise, accurate legal summaries. Always respond with exactly 3 bullet points, each 1-2 sentences. Be specific about law names, sections, and penalties.",
+            "You are a cyber law expert. Provide concise, accurate legal summaries. Always respond with exactly 3 bullet points, each 1-2 sentences. Be specific about law names, sections, and penalties. Do NOT wrap your response in any tags.",
         },
         {
           role: "user",
@@ -46,7 +50,8 @@ export async function POST(request: NextRequest) {
       max_tokens: 500,
     });
 
-    const summary = completion.choices[0]?.message?.content ?? "No summary available.";
+    const rawSummary = completion.choices[0]?.message?.content ?? "No summary available.";
+    const summary = stripThinkTags(rawSummary);
 
     return ok({ summary, countryName, crimeTopic });
   } catch (error: unknown) {

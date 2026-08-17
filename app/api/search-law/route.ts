@@ -1,6 +1,10 @@
-// POST /api/search-law — web search + LLM extraction for legal queries.
+// POST /api/search-law — LLM-powered cyber law Q&A.
 import { ok, fail } from "@/lib/http";
 import { NextRequest } from "next/server";
+
+function stripThinkTags(text: string): string {
+  return text.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+}
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
@@ -25,21 +29,22 @@ export async function POST(request: NextRequest) {
     const groq = new Groq({ apiKey: groqKey });
 
     const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: "openai/gpt-oss-20b",
       messages: [
         {
           role: "system",
-          content: `You are a cyber law research assistant. When given a legal question about cyber crimes, provide a structured JSON response. Always respond with valid JSON matching this schema:
+          content: `You are a cyber law research assistant. When given a legal question about cyber crimes, respond ONLY with valid JSON (no markdown, no explanation, no code fences). Use this exact schema:
 {
   "primaryAct": "Name of Act",
   "legalSection": "Relevant Section",
-  "maxPrisonYears": number,
-  "maxFineUsd": number,
-  "isBailable": boolean,
-  "strictnessRating": number (1-10),
-  "summary": "3-bullet point simple explanation",
-  "isDraftLaw": boolean
-}`,
+  "maxPrisonYears": 0,
+  "maxFineUsd": 0,
+  "isBailable": true,
+  "strictnessRating": 5,
+  "summary": "Concise 2-3 sentence explanation",
+  "isDraftLaw": false
+}
+Fill in real values based on the user's question. Output ONLY the JSON object, nothing else.`,
         },
         {
           role: "user",
@@ -48,11 +53,12 @@ export async function POST(request: NextRequest) {
       ],
       temperature: 0.2,
       max_tokens: 800,
-      response_format: { type: "json_object" },
     });
 
-    const rawContent = completion.choices[0]?.message?.content ?? "{}";
-    const parsedData = JSON.parse(rawContent);
+    const rawContent = stripThinkTags(completion.choices[0]?.message?.content ?? "{}");
+    // Extract JSON from potential markdown fences
+    const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
+    const parsedData = JSON.parse(jsonMatch ? jsonMatch[0] : "{}");
 
     return ok({ result: parsedData, query });
   } catch (error: unknown) {

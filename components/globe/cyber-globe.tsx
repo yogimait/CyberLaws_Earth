@@ -197,6 +197,12 @@ export function CyberGlobe({
         hexPolygonResolution={3}
         hexPolygonMargin={0.5}
         hexPolygonColor={() => "rgba(255, 255, 255, 0.15)"}
+        onPolygonClick={(polygon: any) => {
+          const countryCode = polygon.properties?.ISO_A2;
+          if (!countryCode) return;
+          const c = points.find((p) => p.countryId === countryCode);
+          if (c) handlePointClick(c);
+        }}
 
         // Animated Radar Ripples
         ringsData={points}
