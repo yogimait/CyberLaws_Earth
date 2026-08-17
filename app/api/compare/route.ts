@@ -1,10 +1,14 @@
-import { ok, fail } from "@/lib/http";
+import { ok, fail, readJson } from "@/lib/http";
 import { supabase, firstOf, type CountryRow } from "@/lib/supabase";
 import { NextRequest } from "next/server";
 
 export async function POST(request: NextRequest) {
-  const body = await request.json();
-  const countryIds: string[] = body.countryIds;
+  const body = await readJson<{ countryIds?: unknown }>(request);
+  if (!body) {
+    return fail("INVALID_JSON", {}, "Request body must be valid JSON.", 400);
+  }
+
+  const countryIds = body.countryIds as string[];
 
   if (!Array.isArray(countryIds) || countryIds.length < 2 || countryIds.length > 3) {
     return fail(

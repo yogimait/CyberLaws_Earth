@@ -27,6 +27,10 @@ export default function HomePage() {
   const [showDraftLaws, setShowDraftLaws] = useState(true);
   const [showAiRegulations, setShowAiRegulations] = useState(false);
 
+  // A fresh array here would give the globe new layer data on every render, which
+  // rebuilds the ring and pillar meshes each time.
+  const compareIds = useMemo(() => compareList.map((c) => c.countryId), [compareList]);
+
   const globeApiRef = useRef<GlobeApi | null>(null);
   const handleGlobeReady = useCallback((api: GlobeApi) => {
     globeApiRef.current = api;
@@ -149,11 +153,12 @@ export default function HomePage() {
         <CyberGlobe
           countries={allCountries}
           onCountryClick={handleCountryClick}
-          compareList={compareList.map((c) => c.countryId)}
+          compareList={compareIds}
           isCompareMode={isCompareMode}
           onAddToCompare={handleAddToCompare}
           showDraftLaws={showDraftLaws}
           showAiRegulations={showAiRegulations}
+          isObscured={isDrawerOpen || isComparisonOpen || isAiOpen}
           onReady={handleGlobeReady}
         />
         <GlobeControls

@@ -13,6 +13,12 @@ const GEOJSON_URL =
 const NEUTRAL_DOT = "rgba(255, 255, 255, 0.11)";
 const TRANSPARENT = "rgba(0, 0, 0, 0)";
 
+const COMPACT_QUERY = "(max-width: 768px)";
+
+// Every radar ring is its own draw call and they stack up as they propagate, which
+// is what stalls a phone GPU. Compact devices ring only the countries in play.
+const RING_REPEAT_MS = { compact: 2200, full: 1400 };
+
 // Lift heights — a clicked country stays raised until another is picked.
 const ALTITUDE = {
   untracked: 0.002,
@@ -42,6 +48,8 @@ interface CyberGlobeProps {
   onAddToCompare: (countryId: string) => void;
   showDraftLaws: boolean;
   showAiRegulations: boolean;
+  // True while a panel fully covers the globe, so it can stop rendering.
+  isObscured?: boolean;
   onReady?: (api: GlobeApi) => void;
 }
 
@@ -73,6 +81,9 @@ interface GlobePov {
 interface GlobeInstance {
   controls: () => { autoRotate: boolean; autoRotateSpeed: number };
   pointOfView: (coords?: Partial<GlobePov>, ms?: number) => GlobePov;
+  renderer: () => { setPixelRatio: (ratio: number) => void };
+  pauseAnimation: () => void;
+  resumeAnimation: () => void;
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -126,6 +137,7 @@ export function CyberGlobe({
   onAddToCompare,
   showDraftLaws,
   showAiRegulations,
+  isObscured = false,
   onReady,
 }: CyberGlobeProps) {
   const globeRef = useRef<unknown>(null);
@@ -136,6 +148,17 @@ export function CyberGlobe({
   const [countriesGeoJSON, setCountriesGeoJSON] = useState<any>(null);
   const [hoveredIso, setHoveredIso] = useState<string | null>(null);
   const [activeIso, setActiveIso] = useState<string | null>(null);
+  // Phones pay for every draw call, so the heavy layers scale down here.
+  const [isCompact, setIsCompact] = useState(
+    () => typeof window !== "undefined" && window.matchMedia(COMPACT_QUERY).matches
+  );
+
+  useEffect(() => {
+    const query = window.matchMedia(COMPACT_QUERY);
+    const update = (event: MediaQueryListEvent) => setIsCompact(event.matches);
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
 
   // Load globe library and world borders once — neither depends on country data.
   // The library is client-only, so this doubles as the SSR guard.
@@ -165,6 +188,39 @@ export function CyberGlobe({
     observer.observe(containerRef.current);
     return () => observer.disconnect();
   }, []);
+
+  // A phone's DPR of 3 means 9x the fragments for no visible gain on a dark scene.
+  useEffect(() => {
+    const globe = globeRef.current as GlobeInstance | null;
+    if (!globe || !dimensions.width) return;
+    try {
+      const cap = isCompact ? 1.5 : 2;
+      globe.renderer().setPixelRatio(Math.min(window.devicePixelRatio, cap));
+    } catch {
+      // Renderer not ready yet; the next dimension change retries.
+    }
+  }, [GlobeComponent, dimensions, isCompact]);
+
+  // Rendering a globe nobody can see is pure battery drain: stop the loop while a
+  // panel covers it or the tab is in the background.
+  useEffect(() => {
+    const globe = globeRef.current as GlobeInstance | null;
+    if (!globe) return;
+
+    function applyRenderState() {
+      const shouldPause = isObscured || document.hidden;
+      try {
+        if (shouldPause) globe?.pauseAnimation();
+        else globe?.resumeAnimation();
+      } catch {
+        // Instance not ready yet.
+      }
+    }
+
+    applyRenderState();
+    document.addEventListener("visibilitychange", applyRenderState);
+    return () => document.removeEventListener("visibilitychange", applyRenderState);
+  }, [GlobeComponent, isObscured]);
 
   // Auto-rotate + expose camera controls to the parent
   useEffect(() => {
@@ -244,6 +300,15 @@ export function CyberGlobe({
     [visibleCountries, showAiRegulations, compareList]
   );
 
+  const ringPoints: GlobePoint[] = useMemo(() => {
+    if (!isCompact) return points;
+    return points.filter(
+      (point) =>
+        compareList.includes(point.countryId) ||
+        point.countryId === countryByIso.get(activeIso ?? "")?.countryId
+    );
+  }, [isCompact, points, compareList, countryByIso, activeIso]);
+
   const arcs: GlobeArc[] = useMemo(() => {
     const result: GlobeArc[] = [];
     for (let i = 0; i < compareList.length; i++) {
@@ -306,7 +371,7 @@ export function CyberGlobe({
 
         // Dotted Earth — only the countries we have no data for.
         hexPolygonsData={untrackedPolygons}
-        hexPolygonResolution={3}
+        hexPolygonResolution={isCompact ? 2 : 3}
         hexPolygonMargin={0.5}
         hexPolygonUseDots={true}
         hexPolygonAltitude={ALTITUDE.untracked}
@@ -348,7 +413,7 @@ export function CyberGlobe({
         }}
 
         // Animated Radar Ripples
-        ringsData={points}
+        ringsData={ringPoints}
         ringLat="lat"
         ringLng="lng"
         ringColor={(d: any) => (t: number) => {
@@ -360,7 +425,7 @@ export function CyberGlobe({
         }}
         ringMaxRadius={(d: any) => 3 + (d.score / 10) * 4}
         ringPropagationSpeed={1.5}
-        ringRepeatPeriod={800}
+        ringRepeatPeriod={isCompact ? RING_REPEAT_MS.compact : RING_REPEAT_MS.full}
 
         // 3D Glowing Hex Pillars
         hexBinPointsData={points}

@@ -136,6 +136,19 @@ body {
   50% { opacity: 1; transform: scale(1.04); }
 }
 
+/* Full-screen animated layers repaint every frame alongside the WebGL globe.
+   Phones cannot afford both, so they keep the look and drop the motion. */
+@media (max-width: 768px), (prefers-reduced-motion: reduce) {
+  .starfield,
+  .aurora-bloom {
+    animation: none;
+  }
+
+  .hud-grid {
+    display: none;
+  }
+}
+
 /* ─── Mobile-first responsive helpers ─── */
 @media (max-width: 640px) {
   .scene-tooltip {

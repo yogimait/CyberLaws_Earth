@@ -1,5 +1,5 @@
 // POST /api/summarize — AI-powered legal summary via Groq.
-import { ok, fail } from "@/lib/http";
+import { ok, fail, readJson } from "@/lib/http";
 import { NextRequest } from "next/server";
 
 function stripThinkTags(text: string): string {
@@ -7,7 +7,11 @@ function stripThinkTags(text: string): string {
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json();
+  const body = await readJson<{ countryName?: unknown; crimeTopic?: unknown }>(request);
+  if (!body) {
+    return fail("INVALID_JSON", {}, "Request body must be valid JSON.", 400);
+  }
+
   const { countryName, crimeTopic } = body;
 
   if (!countryName || !crimeTopic) {

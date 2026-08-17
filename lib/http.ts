@@ -8,6 +8,18 @@ export function ok<T>(data: T, statusCode = 200) {
   );
 }
 
+// A malformed body must not escape as an unhandled 500 — callers get null and
+// return a proper envelope.
+export async function readJson<T = Record<string, unknown>>(
+  request: Request
+): Promise<T | null> {
+  try {
+    return (await request.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
 export function fail(
   code: string,
   details?: Record<string, unknown>,
