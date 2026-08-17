@@ -12,6 +12,7 @@ function stripThinkTags(text: string): string {
 interface AiSearchPanelProps {
   isOpen: boolean;
   onClose: () => void;
+  initialQuery?: string;
 }
 
 interface SearchResult {
@@ -25,8 +26,10 @@ interface SearchResult {
   isDraftLaw: boolean;
 }
 
-export function AiSearchPanel({ isOpen, onClose }: AiSearchPanelProps) {
-  const [query, setQuery] = useState("");
+export function AiSearchPanel({ isOpen, onClose, initialQuery = "" }: AiSearchPanelProps) {
+  // Seeded from whatever the user typed in the globe search bar; the caller keys
+  // this component on that query so a new one remounts with it.
+  const [query, setQuery] = useState(initialQuery);
   const [result, setResult] = useState<SearchResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -122,7 +125,7 @@ export function AiSearchPanel({ isOpen, onClose }: AiSearchPanelProps) {
                 </button>
               </div>
               <p className="text-[10px] text-zinc-700 mt-1.5 px-1 font-mono">
-                // ask any cyber crime scenario • powered by GPT OSS-20B
+                {"// ask any cyber crime scenario • powered by GPT OSS-20B"}
               </p>
             </div>
 

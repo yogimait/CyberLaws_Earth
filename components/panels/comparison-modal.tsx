@@ -2,7 +2,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Download, Sparkles, Loader2, FileText } from "lucide-react";
+import { X, Sparkles, Loader2, FileText } from "lucide-react";
 import { StrictnessMeter } from "@/components/ui/strictness-meter";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { CountryDetail } from "@/lib/types";

@@ -43,7 +43,7 @@ async function seed() {
 
     // 2. Insert Draft Laws
     if (country.draftLaws.length > 0) {
-      const draftLawsData = country.draftLaws.map((law: any) => ({
+      const draftLawsData = country.draftLaws.map((law) => ({
         countryId: country.countryId,
         billName: law.billName,
         currentStage: law.currentStage,
@@ -56,7 +56,7 @@ async function seed() {
 
     // 3. Insert Crime Matrix
     if (country.crimesMatrix.length > 0) {
-      const crimesData = country.crimesMatrix.map((crime: any) => ({
+      const crimesData = country.crimesMatrix.map((crime) => ({
         countryId: country.countryId,
         categoryId: crime.categoryId,
         crimeName: crime.crimeName,

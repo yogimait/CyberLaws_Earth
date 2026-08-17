@@ -1,5 +1,5 @@
 import { ok, fail } from "@/lib/http";
-import { supabase } from "@/lib/supabase";
+import { supabase, firstOf, type CountryRow } from "@/lib/supabase";
 import { NextRequest } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     .in("countryId", countryIds);
 
   if (error || !data || data.length !== countryIds.length) {
-    const found = data?.map((c: any) => c.countryId) || [];
+    const found = data?.map((c: { countryId: string }) => c.countryId) || [];
     const missing = countryIds.filter((id) => !found.includes(id));
     return fail(
       "COUNTRIES_NOT_FOUND",
@@ -39,8 +39,8 @@ export async function POST(request: NextRequest) {
   }
 
   // Flatten aiCyberCrimes for each country
-  const countries = data.map((c: any) => {
-    c.aiCyberCrimes = c.aiCyberCrimes?.[0] ?? null;
+  const countries = data.map((c: CountryRow) => {
+    c.aiCyberCrimes = firstOf(c.aiCyberCrimes);
     return c;
   });
 
