@@ -3,7 +3,8 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Search, Sparkles, Loader2, Scale, Shield, Gavel, AlertTriangle } from "lucide-react";
+import { X, Search, Sparkles, Loader2, Scale, Shield, Gavel, AlertTriangle, Globe, ExternalLink } from "lucide-react";
+import type { WebSource } from "@/lib/serper";
 
 function stripThinkTags(text: string): string {
   return text.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
@@ -31,6 +32,7 @@ export function AiSearchPanel({ isOpen, onClose, initialQuery = "" }: AiSearchPa
   // this component on that query so a new one remounts with it.
   const [query, setQuery] = useState(initialQuery);
   const [result, setResult] = useState<SearchResult | null>(null);
+  const [sources, setSources] = useState<WebSource[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,6 +41,7 @@ export function AiSearchPanel({ isOpen, onClose, initialQuery = "" }: AiSearchPa
     setIsLoading(true);
     setError(null);
     setResult(null);
+    setSources([]);
 
     try {
       const response = await fetch("/api/search-law", {
@@ -49,6 +52,7 @@ export function AiSearchPanel({ isOpen, onClose, initialQuery = "" }: AiSearchPa
       const data = await response.json();
       if (data.status) {
         setResult(data.data.result);
+        setSources(data.data.sources ?? []);
       } else {
         setError(data.message || "Search failed.");
       }
@@ -223,6 +227,46 @@ export function AiSearchPanel({ isOpen, onClose, initialQuery = "" }: AiSearchPa
                         DRAFT / PROPOSED LAW
                       </span>
                     </div>
+                  )}
+
+                  {/* Web sources behind the answer */}
+                  {sources.length > 0 ? (
+                    <div className="pt-1">
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <Globe className="w-3 h-3 text-emerald-500/70" />
+                        <span className="text-[9px] uppercase tracking-[0.2em] text-zinc-600 font-semibold font-[family-name:var(--font-quantico)]">
+                          Sources ({sources.length})
+                        </span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {sources.map((source, index) => (
+                          <a
+                            key={source.link}
+                            href={source.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-start gap-2 p-2 bg-white/[0.02] border border-white/[0.04] rounded-lg hover:border-emerald-500/20 transition-colors group"
+                          >
+                            <span className="text-[9px] font-mono text-zinc-600 mt-0.5 shrink-0">
+                              [{index + 1}]
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-[11px] text-zinc-300 truncate group-hover:text-emerald-400 transition-colors">
+                                {source.title}
+                              </div>
+                              <div className="text-[9px] text-zinc-600 truncate font-mono">
+                                {new URL(source.link).hostname}
+                              </div>
+                            </div>
+                            <ExternalLink className="w-3 h-3 text-zinc-700 shrink-0 mt-0.5" />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-zinc-700 font-mono">
+                      {"// no web sources — answered from model knowledge"}
+                    </p>
                   )}
                 </motion.div>
               )}
